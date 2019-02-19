@@ -2,6 +2,9 @@ var shareImageButton = document.querySelector('#share-image-button');
 var createPostArea = document.querySelector('#create-post');
 var sharedMomentsArea = document.querySelector('#shared-moments');
 var closeCreatePostModalButton = document.querySelector('#close-create-post-modal-btn');
+var form = document.querySelector('form');
+var titleInput = document.querySelector('#title');
+var locationInput = document.querySelector('#location');
 
 function openCreatePostModal() {
   //createPostArea.style.display = 'block';
@@ -115,3 +118,53 @@ if('indexedDB' in window){
     }
   });
 }
+
+function sendData(){
+  fetch(url,{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "Accept":"application/json",
+    },
+    body : {
+      id: new Date().toISOString(),
+      title: titleInput.value,
+      location:locationInput.value,
+      image : 'https://firebasestorage.googleapis.com/v0/b/pictureit-e41c1.appspot.com/o/Marcus.png?alt=media&token=257a20c0-e6d2-4cc8-abb7-4a629049a265'
+    }
+  }).then(function(res){
+    console.log("Sent Data",res);
+  })
+}
+
+form.addEventListener('submit', function(){
+  event.preventDefault();
+  if(titleInput.value.trim() ==='' || locationInput.value.trim()===''){
+    alert("Please enter data!")
+    return;
+  }
+
+  closeCreatePostModal();
+
+  if('serviceWorker' in navigator && 'SyncManager' in window){
+      navigator.serviceWorker.ready.then(function(sw){
+        var post={
+          id: new Date().toISOString(),
+          title: titleInput.value,
+          location: locationInput.value
+        };
+        writeData('sync-posts',post).then(function(){
+          sw.sync.register('sync-new-post');
+        }).then(function(){
+          var snackbarContainer = document.querySelector('#confirmation-toast');
+          var data= {message : "Your post has been saved for syncing!"};
+          snackbarContainer.MaterialSnackbar.showSnackbar(data);
+        }).catch(function(err){
+          console.log(err);
+        }); 
+      });
+  }
+  else{
+      sendData();
+  }
+});

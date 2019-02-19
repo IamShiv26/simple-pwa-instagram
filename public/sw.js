@@ -136,3 +136,36 @@ self.addEventListener('fetch', function(event){
 //         })
 //     );
 // });
+
+self.addEventListener('sync', function(event){
+    console.log("[Service Worker] Background Syncing....",event);
+    if(event.tag === 'sync-new-post'){
+        console.log("[Service Worker] Syncing new posts...");
+        event.waitUntil(
+            readAllData('sync-posts').then(function(data){
+                for(var dt of data){
+                    fetch("https://pictureit-e41c1.firebaseio.com/posts.json",{
+                        method:"POST",
+                        headers:{
+                          "Content-Type":"application/json",
+                          "Accept":"application/json"
+                        },
+                        body : JSON.stringify({
+                          id: dt.id,
+                          title: dt.title,
+                          location:dt.location,
+                          image : 'https://firebasestorage.googleapis.com/v0/b/pictureit-e41c1.appspot.com/o/Marcus.png?alt=media&token=257a20c0-e6d2-4cc8-abb7-4a629049a265'
+                        })
+                      }).then(function(res){
+                        console.log("Sent Data",res);
+                        if(res.ok){
+                            deleteSingleItem('sync-posts',dt.id);
+                        }
+                      }).catch(function(err){
+                          console.log("Error while sending data!",err);
+                      });
+                }
+            })
+        );
+    }
+});
