@@ -1,5 +1,9 @@
-var CACHE_STATIC = "static-v30";
-var CACHE_DYNAMIC = "dynamic-v2";
+
+importScripts('/src/js/idb.js');
+importScripts('/src/js/utility.js');
+
+var CACHE_STATIC = "static-v41";
+var CACHE_DYNAMIC = "dynamic-v3";
 var STATIC_ARRAY = [
     '/',
 '/index.html',
@@ -8,6 +12,7 @@ var STATIC_ARRAY = [
 '/src/js/feed.js',
 '/src/js/promise.js',
 '/src/js/fetch.js',
+'/src/js/idb.js',
 '/src/js/material.min.js',
 '/src/css/app.css',
 '/src/css/feed.css',
@@ -16,6 +21,7 @@ var STATIC_ARRAY = [
 'https://fonts.googleapis.com/icon?family=Material+Icons',
 'https://cdnjs.cloudflare.com/ajax/libs/material-design-lite/1.3.0/material.indigo-pink.min.css'
 ];
+
 
 // function trimCache(cacheName,maxItems){
 //     caches.open(CACHE_DYNAMIC).then(function(cache){
@@ -63,15 +69,18 @@ function isInArray(string,array){
 
 self.addEventListener('fetch', function(event){
     //console.log("[Service Worker] Fetching....",event);
-    var url="https://httpbin.org/get";
+    var url="https://pictureit-e41c1.firebaseio.com/posts";
     if(event.request.url.indexOf(url)>-1){
-    event.respondWith(
-        caches.open(CACHE_DYNAMIC).then(function(cache){
-            return fetch(event.request).then(function(res){
-                //trimCache(CACHE_DYNAMIC,4);
-                cache.put(event.request,res.clone());
-                return res;
-            });
+    event.respondWith(fetch(event.request).then(function(res){
+        var clonedRes = res.clone();
+        clearAllData('posts').then(function(){
+            return clonedRes.json();
+        }).then(function(data){
+                for(var key in data){
+                    writeData('posts',data[key]);
+                }
+                });
+        return res;
         })
     );
     }else if(isInArray(event.request.url,STATIC_ARRAY)){
