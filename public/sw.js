@@ -1,27 +1,38 @@
-var CACHE_STATIC = "static-v19";
-var CACHE_DYNAMIC = "dynamic-v2"
+var CACHE_STATIC = "static-v30";
+var CACHE_DYNAMIC = "dynamic-v2";
+var STATIC_ARRAY = [
+    '/',
+'/index.html',
+'/offline.html',
+'/src/js/app.js',
+'/src/js/feed.js',
+'/src/js/promise.js',
+'/src/js/fetch.js',
+'/src/js/material.min.js',
+'/src/css/app.css',
+'/src/css/feed.css',
+'/src/images/main-image.jpg',
+'https://fonts.googleapis.com/css?family=Roboto:400,700',
+'https://fonts.googleapis.com/icon?family=Material+Icons',
+'https://cdnjs.cloudflare.com/ajax/libs/material-design-lite/1.3.0/material.indigo-pink.min.css'
+];
+
+// function trimCache(cacheName,maxItems){
+//     caches.open(CACHE_DYNAMIC).then(function(cache){
+//         return cache.keys().then(function(keys){
+//             if(keys.length>maxItems){
+//                 cache.delete(keys[0]).then(trimCache(cacheName,maxItems));
+//             }
+//         });
+//     })
+// }
 
 self.addEventListener('install',function(event){
     console.log("[Service Worker] Installing Service Worker...",event);
     event.waitUntil(
         caches.open(CACHE_STATIC).then(function(cache){
             console.log("[Service Worker] Prechaching App Shell...");
-            cache.addAll([
-                '/',
-                '/index.html',
-                '/offline.html',
-                '/src/js/app.js',
-                '/src/js/feed.js',
-                '/src/js/promise.js',
-                '/src/js/fetch.js',
-                '/src/js/material.min.js',
-                '/src/css/app.css',
-                '/src/css/feed.css',
-                '/src/images/main-image.jpg',
-                'https://fonts.googleapis.com/css?family=Roboto:400,700',
-                'https://fonts.googleapis.com/icon?family=Material+Icons',
-                'https://cdnjs.cloudflare.com/ajax/libs/material-design-lite/1.3.0/material.indigo-pink.min.css'
-            ]);
+            cache.addAll(STATIC_ARRAY);
         })
     )
 });
@@ -40,6 +51,16 @@ self.addEventListener('activate',function(event){
     );
     return self.clients.claim();
 });
+
+function isInArray(string,array){
+    for(var i=0;i<array.length;i++){
+        if(string===array[i]){
+            return true;
+        }
+    }
+    return false;
+}
+
 self.addEventListener('fetch', function(event){
     //console.log("[Service Worker] Fetching....",event);
     var url="https://httpbin.org/get";
@@ -47,11 +68,17 @@ self.addEventListener('fetch', function(event){
     event.respondWith(
         caches.open(CACHE_DYNAMIC).then(function(cache){
             return fetch(event.request).then(function(res){
+                //trimCache(CACHE_DYNAMIC,4);
                 cache.put(event.request,res.clone());
                 return res;
             });
         })
     );
+    }else if(isInArray(event.request.url,STATIC_ARRAY)){
+        //Cache Only Approach For Static Cache
+        event.respondWith(
+            caches.match(event.request)
+        );
     }else{
         event.respondWith(
             caches.match(event.request).then(function(response){
@@ -61,12 +88,15 @@ self.addEventListener('fetch', function(event){
                 else{
                     return fetch(event.request).then(function(res){
                         return caches.open(CACHE_DYNAMIC).then(function(cache){
+                            //trimCache(CACHE_DYNAMIC,4);
                             cache.put(event.request.url,res.clone());
                             return res;
                         })
                     }).catch(function(err){
                         return caches.open(CACHE_STATIC).then(function(cache){
+                            if(event.request.headers.get('accept').includes('text/html')){//Can be used for fallbacking any file and not just html files(eg. images)
                             return cache.match('/offline.html');
+                            }
                         });
                     });
                 }
@@ -74,6 +104,7 @@ self.addEventListener('fetch', function(event){
         );
     }
 });
+
 // self.addEventListener('fetch', function(event){
 //     //console.log("[Service Worker] Fetching....",event);
 //     event.respondWith(
