@@ -2,7 +2,7 @@
 importScripts('/src/js/idb.js');
 importScripts('/src/js/utility.js');
 
-var CACHE_STATIC = "static-v41";
+var CACHE_STATIC = "static-v58";
 var CACHE_DYNAMIC = "dynamic-v3";
 var STATIC_ARRAY = [
     '/',
@@ -144,7 +144,7 @@ self.addEventListener('sync', function(event){
         event.waitUntil(
             readAllData('sync-posts').then(function(data){
                 for(var dt of data){
-                    fetch("https://pictureit-e41c1.firebaseio.com/posts.json",{
+                    fetch("https://us-central1-pictureit-e41c1.cloudfunctions.net/storePostData",{
                         method:"POST",
                         headers:{
                           "Content-Type":"application/json",
@@ -159,7 +159,9 @@ self.addEventListener('sync', function(event){
                       }).then(function(res){
                         console.log("Sent Data",res);
                         if(res.ok){
-                            deleteSingleItem('sync-posts',dt.id);
+                            res.json().then(function(resData){
+                                deleteSingleItem('sync-posts',resData.id);
+                            });
                         }
                       }).catch(function(err){
                           console.log("Error while sending data!",err);

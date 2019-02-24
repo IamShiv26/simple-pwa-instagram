@@ -1,4 +1,6 @@
 var deferredPrompt;
+var enableNotificationsButtons = document.querySelectorAll(".enable-notifications");
+
 
 if(!window.Promise){
     window.Promise=Promise;
@@ -18,6 +20,33 @@ window.addEventListener('beforeinstallprompt',function(event){
     deferredPrompt=event;
     return false;
 });
+
+function displayConfirmedNotifications(){
+    var options={
+        body:"You have successfully subscribed to notifications Service!!"
+    };
+    new Notification("Successfully subscribed!",options);
+}
+
+function askForNotificationPermissions(){
+    Notification.requestPermission(function(result){
+        console.log("User Choice",result);
+        if(result !=='granted'){
+            console.log("No Notification Permission Granted!");
+        }
+        else{
+            //Hide Button
+            displayConfirmedNotifications();
+        }
+    });
+}
+
+if("Notification" in window){
+    for(var i=0;i<enableNotificationsButtons.length;i++){
+        enableNotificationsButtons[i].style.display = "inline-block";
+        enableNotificationsButtons[i].addEventListener('click', askForNotificationPermissions);
+    }
+}
 
 // //GET Request using Tradition AJAx (Synchronous) Cannot be used in SWs
 // var xhr = new XMLHttpRequest();
